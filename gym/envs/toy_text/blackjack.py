@@ -23,7 +23,7 @@ def usable_ace(hand):  # Does this hand have a usable ace?
 
 def sum_hand(hand):  # Return current hand total
     if usable_ace(hand):
-            return sum(hand) + 10
+        return sum(hand) + 10
     return sum(hand)
 
 
@@ -48,8 +48,8 @@ class BlackjackEnv(gym.Env):
     Face cards (Jack, Queen, King) have point value 10.
     Aces can either count as 11 or 1, and it's called 'usable' at 11.
     This game is placed with an infinite deck (or with replacement).
-    The game starts with each (player and dealer) having one face up and one
-    face down card.
+    The game starts with dealer having one face up and one face down card, while
+    player having two face up cards. (Virtually for all Blackjack games today).
 
     The player can request additional cards (hit=1) until they decide to stop
     (stick=0) or exceed 21 (bust).
@@ -67,8 +67,8 @@ class BlackjackEnv(gym.Env):
 
     This environment corresponds to the version of the blackjack problem
     described in Example 5.1 in Reinforcement Learning: An Introduction
-    by Sutton and Barto (1998).
-    http://incompleteideas.net/sutton/book/the-book.html
+    by Sutton and Barto.
+    http://incompleteideas.net/book/the-book-2nd.html
     """
     def __init__(self, natural=False):
         self.action_space = spaces.Discrete(2)
@@ -76,41 +76,41 @@ class BlackjackEnv(gym.Env):
             spaces.Discrete(32),
             spaces.Discrete(11),
             spaces.Discrete(2)))
-        self._seed()
+        self.seed()
 
         # Flag to payout 1.5 on a "natural" blackjack win, like casino rules
         # Ref: http://www.bicyclecards.com/how-to-play/blackjack/
         self.natural = natural
         # Start the first game
-        self._reset()
+        self.reset()
 
-    def _seed(self, seed=None):
+    def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def _step(self, action):
+    def step(self, action):
         assert self.action_space.contains(action)
         if action:  # hit: add a card to players hand and return
             self.player.append(draw_card(self.np_random))
             if is_bust(self.player):
                 done = True
-                reward = -1
+                reward = -1.
             else:
                 done = False
-                reward = 0
+                reward = 0.
         else:  # stick: play out the dealers hand, and score
             done = True
             while sum_hand(self.dealer) < 17:
                 self.dealer.append(draw_card(self.np_random))
             reward = cmp(score(self.player), score(self.dealer))
-            if self.natural and is_natural(self.player) and reward == 1:
+            if self.natural and is_natural(self.player) and reward == 1.:
                 reward = 1.5
         return self._get_obs(), reward, done, {}
 
     def _get_obs(self):
         return (sum_hand(self.player), self.dealer[0], usable_ace(self.player))
 
-    def _reset(self):
+    def reset(self):
         self.dealer = draw_hand(self.np_random)
         self.player = draw_hand(self.np_random)
         return self._get_obs()

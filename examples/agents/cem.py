@@ -1,13 +1,7 @@
-from __future__ import print_function
-
 import gym
-from gym import wrappers
-import logging
+from gym import wrappers, logger
 import numpy as np
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 import json, sys, os
 from os import path
 from _policies import BinaryActionLinearPolicy # Different file so it can be unpickled
@@ -17,12 +11,20 @@ def cem(f, th_mean, batch_size, n_iter, elite_frac, initial_std=1.0):
     """
     Generic implementation of the cross-entropy method for maximizing a black-box function
 
-    f: a function mapping from vector -> scalar
-    th_mean: initial mean over input distribution
-    batch_size: number of samples of theta to evaluate per batch
-    n_iter: number of batches
-    elite_frac: each batch, select this fraction of the top-performing samples
-    initial_std: initial standard deviation over parameter vectors
+    Args:
+        f: a function mapping from vector -> scalar
+        th_mean (np.array): initial mean over input distribution
+        batch_size (int): number of samples of theta to evaluate per batch
+        n_iter (int): number of batches
+        elite_frac (float): each batch, select this fraction of the top-performing samples
+        initial_std (float): initial standard deviation over parameter vectors
+
+    returns:
+        A generator of dicts. Subsequent dicts correspond to iterations of CEM algorithm.
+        The dicts contain the following values:
+        'ys' :  numpy array with values of function evaluated at current population
+        'ys_mean': mean value of function over current population
+        'theta_mean': mean value of the parameter vector over current population
     """
     n_elite = int(np.round(batch_size*elite_frac))
     th_std = np.ones_like(th_mean) * initial_std
@@ -48,8 +50,7 @@ def do_rollout(agent, env, num_steps, render=False):
     return total_rew, t+1
 
 if __name__ == '__main__':
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.set_level(logger.INFO)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--display', action='store_true')
@@ -59,7 +60,7 @@ if __name__ == '__main__':
     env = gym.make(args.target)
     env.seed(0)
     np.random.seed(0)
-    params = dict(n_iter=10, batch_size=25, elite_frac = 0.2)
+    params = dict(n_iter=10, batch_size=25, elite_frac=0.2)
     num_steps = 200
 
     # You provide the directory to write to (can be an existing
@@ -96,6 +97,3 @@ if __name__ == '__main__':
     writefile('info.json', json.dumps(info))
 
     env.close()
-
-    logger.info("Successfully ran cross-entropy method. Now trying to upload results to the scoreboard. If it breaks, you can always just try re-uploading the same results.")
-    gym.upload(outdir)
